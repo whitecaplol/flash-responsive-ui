@@ -3,4 +3,5 @@ test/
 output/
 geode/
 .vscode/
+.zed/
 /__*/

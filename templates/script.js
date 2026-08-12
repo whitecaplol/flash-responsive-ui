@@ -131,6 +131,15 @@ function highlight() {
     twemoji.parse(document.body);
 }
 
+function lazierUrls() {
+  mainBody.querySelectorAll('a').forEach(a => {
+    const rawHref = a.getAttribute("href");
+    console.log(rawHref);
+    if (a.hasAttribute("onclick") || !rawHref || !rawHref.startsWith("/")) return;
+    a.setAttribute("onclick", `return navigate('${rawHref}')`);
+  });
+}
+
 function clearSearch() {
     searchInput.value = '';
     search('');
@@ -159,6 +168,7 @@ function searchActually(query) {
             memberFunctionsList = res;
             searchActually(searchQuery);
         });
+        return;
     }
     updateNav();
 }
@@ -319,12 +329,17 @@ function updateNav() {
             if (match) {
                 const clone = a.cloneNode(false);
                 const svg = a.querySelector('svg');
+                clone.style.whiteSpace = "pre";
                 clone.innerHTML = match.matched;
                 // copy any icons over
                 if (svg) {
                     clone.insertBefore(svg.cloneNode(true), clone.firstChild);
                 }
                 results.push([match.score, clone]);
+                clone.addEventListener('click', e => {
+                    navigate(clone.href);
+                    e.preventDefault();
+                })
             }
         });
         if (selectedNavTab() == 'entities') {
@@ -335,12 +350,13 @@ function updateNav() {
                 if (match) {
                     funParts.pop();
                     const node = document.createElement('a');
-                    const url = `${FLASH_OUTPUT_URL}/classes/${funParts.join('/')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
+                    const url = `${FLASH_OUTPUT_URL}/classes/${funParts.join('/').replace(/<.*>/g, '')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
                     node.setAttribute('href', url);
                     node.addEventListener('click', e => {
                         navigate(url);
                         e.preventDefault();
                     });
+                    node.style.whiteSpace = "pre";
                     node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + match.matched;
                     results.push([match.score, node]);
                 }
@@ -483,6 +499,16 @@ async function buildNav() {
 	appendChildren(document.querySelector('#nav-content-tutorials'), buildNavFor(data.tutorials));
 }
 
+async function updateCurrentHistoryState() {
+    const trueURL = window.location.origin + window.location.pathname;
+
+    const metadata = await fetch(`${trueURL}/metadata.json`).then(res => res.json());
+    window.history.replaceState({
+        html: mainBody.innerHTML,
+        ...metadata
+    }, "", window.location.origin + window.location.pathname);
+}
+
 function navigate(url) {
     const trueURL = url.split('#').shift();
     const head = url.split('#').pop();
@@ -499,6 +525,7 @@ function navigate(url) {
             mainBody.scrollTo({ left: 0, top: 0 });
             nav.querySelectorAll('a.selected').forEach(a => a.classList.remove('selected'));
             nav.querySelector(`[href="${url}"]`)?.classList.add('selected');
+            lazierUrls();
             highlight();
             // hide navbar
             nav.classList.add('collapsed');
@@ -516,6 +543,7 @@ window.onpopstate = e => {
     if (e.state) {
         mainBody.innerHTML = e.state.html;
         document.title = e.state.title;
+        lazierUrls();
         highlight();
     }
 };
@@ -547,6 +575,15 @@ function toggleMenu() {
 }
 
 await buildNav();
+await updateCurrentHistoryState();
+
+// Make urls lazier
+try {
+    lazierUrls();
+} catch (e) {
+    console.error("Lazier urls failed... oops");
+    console.error(e);
+}
 
 // Highlight everything
 try {
@@ -597,3 +634,4 @@ document.querySelector(`[data-pick-theme="${
 window.showNav = showNav;
 window.clearSearch = clearSearch;
 window.toggleMenu = toggleMenu;
+window.navigate = navigate;

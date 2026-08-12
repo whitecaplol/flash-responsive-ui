@@ -190,11 +190,16 @@ nav > .content a {
     text-decoration: none;
     display: flex;
     flex-direction: row;
+    align-items: center;
     padding: .25rem;
     user-select: none;
     white-space: nowrap;
     text-overflow: clip;
     max-width: 100%;
+}
+
+nav > .content a > svg {
+    flex-shrink: 0;
 }
 
 @media only screen and (max-width: 800px) {
