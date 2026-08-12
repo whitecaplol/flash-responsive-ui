@@ -14,6 +14,17 @@ let searchQuery = '';
 
 let memberFunctionsList = null;
 
+function sanitizeCharacter(char) {
+    switch (char) {
+        case '&': return '&amp';
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot';
+        case "'": return '&#039';
+        default: return char;
+    };
+}
+
 function createCopyButton(icon, text, callback = undefined) {
     const button = document.createElement('button');
     button.innerHTML = `${icon}`;
@@ -134,7 +145,6 @@ function highlight() {
 function lazierUrls() {
   mainBody.querySelectorAll('a').forEach(a => {
     const rawHref = a.getAttribute("href");
-    console.log(rawHref);
     if (a.hasAttribute("onclick") || !rawHref || !rawHref.startsWith("/")) return;
     a.setAttribute("onclick", `return navigate('${rawHref}')`);
   });
@@ -225,7 +235,7 @@ function furryMatch(str, query) {
             if (matchedInARow === 1) {
                 matchedString += '<span class="matched">';
             }
-            matchedString += current;
+            matchedString += sanitizeCharacter(current);
 
             // match next char in query next
             toMatch++;
@@ -241,7 +251,7 @@ function furryMatch(str, query) {
             if (matchedInARow) {
                 matchedString += '</span>';
             }
-            matchedString += current;
+            matchedString += sanitizeCharacter(current);
             matchedInARow = 0;
         }
     }

@@ -714,7 +714,7 @@ impl<'e> JSDocComment<'e> {
         .into()
     }
 
-    pub fn examples(&self) -> &Vec<Example> {
+    pub fn examples(&self) -> &Vec<Example<'_>> {
         &self.examples
     }
 }
