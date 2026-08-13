@@ -282,7 +282,7 @@ function furryMatchMany(list, query, separator) {
         }
         const match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
         if (match) {
-            matched += match.matched.replace(/>\s+</, '>&nbsp;<');
+            matched += match.matched.replace(/>\s+</g, '>&nbsp;<');
             score += match.score;
             someMatched = true;
             // namespace match is a penaulty
