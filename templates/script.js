@@ -144,9 +144,13 @@ function highlight() {
 
 function lazierUrls() {
   mainBody.querySelectorAll('a').forEach(a => {
-    const rawHref = a.getAttribute("href");
-    if (a.hasAttribute("onclick") || !rawHref || !rawHref.startsWith("/")) return;
-    a.setAttribute("onclick", `return navigate('${rawHref}')`);
+    const rawHref = a.getAttribute('href');
+    if (a.hasAttribute('onclick') || !rawHref) return;
+    if (rawHref.startsWith('/')) {
+      a.setAttribute('onclick', `return navigate('${rawHref}')`);
+    } else if (rawHref.startsWith('#')) {
+      a.setAttribute('onclick', `return navigate('${a.href}')`);
+    }
   });
 }
 
@@ -272,11 +276,17 @@ function furryMatchMany(list, query, separator) {
     // hack: "::" -> ":"
     const queryParts = query.split(separator[0]).filter(x => x !== "");
     let queryIndex = 0;
-    for (const item of list) {
+    for (const [i, item] of list.entries()) {
         if (matched.length) {
             matched += `<span class="scope">${separator}</span>`;
         }
-        const match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
+        const items = item.split(/\s+/g).filter(x => x !== "");
+        let match;
+        if (items.length > 1) {
+            match = furryMatchMany(items, query, " ");
+        } else {
+            match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
+        }
         if (match) {
             matched += match.matched;
             score += match.score;
@@ -293,7 +303,6 @@ function furryMatchMany(list, query, separator) {
         else {
             matched += item;
         }
-        i++;
     }
     // theres still stuff that wasnt matched
     if (queryIndex < queryParts.length) {
@@ -516,7 +525,7 @@ async function updateCurrentHistoryState() {
     window.history.replaceState({
         html: mainBody.innerHTML,
         ...metadata
-    }, "", window.location.origin + window.location.pathname);
+    }, "", trueURL);
 }
 
 function navigate(url) {
@@ -555,6 +564,7 @@ window.onpopstate = e => {
         document.title = e.state.title;
         lazierUrls();
         highlight();
+        scrollAndOpenElement(window.location.hash);
     }
 };
 
