@@ -280,15 +280,9 @@ function furryMatchMany(list, query, separator) {
         if (matched.length) {
             matched += `<span class="scope">${separator}</span>`;
         }
-        const items = item.split(/\s+/g).filter(x => x !== "");
-        let match;
-        if (items.length > 1) {
-            match = furryMatchMany(items, query, " ");
-        } else {
-            match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
-        }
+        const match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
         if (match) {
-            matched += match.matched;
+            matched += match.matched.replace(/>\s+</, '>&nbsp;<');
             score += match.score;
             someMatched = true;
             // namespace match is a penaulty
@@ -519,13 +513,13 @@ async function buildNav() {
 }
 
 async function updateCurrentHistoryState() {
-    const trueURL = window.location.origin + window.location.pathname;
+    const path = window.location.origin + window.location.pathname;
 
-    const metadata = await fetch(`${trueURL}/metadata.json`).then(res => res.json());
+    const metadata = await fetch(`${path}/metadata.json`).then(res => res.json());
     window.history.replaceState({
         html: mainBody.innerHTML,
         ...metadata
-    }, "", trueURL);
+    }, "", window.location.href.replace('/#', '#').replace(/\/$/, ''));
 }
 
 function navigate(url) {
