@@ -14,15 +14,16 @@ let searchQuery = '';
 
 let memberFunctionsList = null;
 
-function sanitizeCharacter(char) {
+function sanitizeText(text) {
+  return text.replace(/[&<>'"]/g, char => {
     switch (char) {
         case '&': return '&amp';
         case '<': return '&lt;';
         case '>': return '&gt;';
         case '"': return '&quot';
         case "'": return '&#039';
-        default: return char;
     };
+  });
 }
 
 function createCopyButton(icon, text, callback = undefined) {
@@ -239,7 +240,7 @@ function furryMatch(str, query) {
             if (matchedInARow === 1) {
                 matchedString += '<span class="matched">';
             }
-            matchedString += sanitizeCharacter(current);
+            matchedString += current;
 
             // match next char in query next
             toMatch++;
@@ -255,7 +256,7 @@ function furryMatch(str, query) {
             if (matchedInARow) {
                 matchedString += '</span>';
             }
-            matchedString += sanitizeCharacter(current);
+            matchedString += current;
             matchedInARow = 0;
         }
     }
@@ -266,6 +267,14 @@ function furryMatch(str, query) {
             score: (score - (str.length - query.length) / 10),
             matched: matchedString
         } : undefined;
+}
+
+function sanitizeGenerics(text) {
+    const parts = text.split(/(<span.*?>|<\/span>)/);
+    for (let i = 0; i < parts.length; i += 2) {
+        parts[i] = sanitizeText(parts[i]);
+    }
+    return parts.join('');
 }
 
 function furryMatchMany(list, query, separator) {
@@ -302,7 +311,9 @@ function furryMatchMany(list, query, separator) {
     if (queryIndex < queryParts.length) {
         someMatched = false;
     }
-    return someMatched ? { score, matched } : undefined;
+    if (!someMatched) return undefined;
+    matched = sanitizeGenerics(matched);
+    return { score, matched };
 }
 
 function currentNav() {
