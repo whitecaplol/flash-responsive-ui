@@ -272,7 +272,8 @@ function furryMatch(str, query) {
 function sanitizeGenerics(text) {
     const parts = text.split(/(<span.*?>|<\/span>)/);
     for (let i = 0; i < parts.length; i += 2) {
-        parts[i] = sanitizeText(parts[i]);
+        const part = parts[i];
+        parts[i] = (part !== '&nbsp;') ? sanitizeText(part) : part;
     }
     return parts.join('');
 }
