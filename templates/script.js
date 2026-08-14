@@ -15,15 +15,15 @@ let searchQuery = '';
 let memberFunctionsList = null;
 
 function sanitizeText(text) {
-  return text.replace(/[&<>'"]/g, char => {
-    switch (char) {
-        case '&': return '&amp';
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '"': return '&quot';
-        case "'": return '&#039';
-    };
-  });
+    return text.replace(/[&<>'"]/g, char => {
+        switch (char) {
+            case '&': return '&amp';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot';
+            case "'": return '&#039';
+        };
+    });
 }
 
 function createCopyButton(icon, text, callback = undefined) {
@@ -144,15 +144,15 @@ function highlight() {
 }
 
 function lazierUrls() {
-  mainBody.querySelectorAll('a').forEach(a => {
-    const rawHref = a.getAttribute('href');
-    if (a.hasAttribute('onclick') || !rawHref) return;
-    if (rawHref.startsWith('/')) {
-      a.setAttribute('onclick', `return navigate('${rawHref}')`);
-    } else if (rawHref.startsWith('#')) {
-      a.setAttribute('onclick', `return navigate('${a.href}')`);
-    }
-  });
+    mainBody.querySelectorAll('a').forEach(a => {
+        const rawHref = a.getAttribute('href');
+        if (a.hasAttribute('onclick') || !rawHref) return;
+        if (rawHref.startsWith('/')) {
+            a.setAttribute('onclick', `return navigate('${rawHref}')`);
+        } else if (rawHref.startsWith('#')) {
+            a.setAttribute('onclick', `return navigate('${a.href}')`);
+        }
+    });
 }
 
 function clearSearch() {
@@ -354,7 +354,7 @@ function updateNav() {
             if (match) {
                 const clone = a.cloneNode(false);
                 const svg = a.querySelector('svg');
-                clone.style.whiteSpace = "pre";
+                clone.style.whiteSpace = 'pre';
                 clone.innerHTML = match.matched;
                 // copy any icons over
                 if (svg) {
@@ -381,7 +381,7 @@ function updateNav() {
                         navigate(url);
                         e.preventDefault();
                     });
-                    node.style.whiteSpace = "pre";
+                    node.style.whiteSpace = 'pre';
                     node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + match.matched;
                     results.push([match.score, node]);
                 }
@@ -426,7 +426,7 @@ function updateNav() {
 }
 
 function scrollAndOpenElement(id) {
-    if (id) {
+    if (id != null && id.length > 0) {
         if (id.startsWith('#')) {
             id = id.substring(1);
         }
@@ -440,6 +440,8 @@ function scrollAndOpenElement(id) {
                 target.open = true;
             }
         }
+    } else {
+        mainBody.scrollTo(0, 0);
     }
 }
 
@@ -531,7 +533,7 @@ async function updateCurrentHistoryState() {
     window.history.replaceState({
         html: mainBody.innerHTML,
         ...metadata
-    }, "", window.location.href.replace('/#', '#').replace(/\/$/, ''));
+    }, '', window.location.href.replace('/#', '#').replace(/\/$/, ''));
 }
 
 function navigate(url) {
