@@ -1,4 +1,3 @@
-#![feature(let_chains)]
 #![feature(iter_advance_by)]
 #![feature(iter_intersperse)]
 

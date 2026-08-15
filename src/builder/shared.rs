@@ -418,11 +418,16 @@ pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Buil
 }
 
 pub fn fmt_derived_class(entity: &Entity, builder: &Builder) -> Html {
+    let link = entity.abs_docs_url(builder.config.clone());
     HtmlElement::new("div")
         .with_classes(&["entity", "class"])
         .with_child(
             HtmlElement::new("a")
-                .with_attr_opt("href", entity.abs_docs_url(builder.config.clone()))
+                .with_attr_opt("href", link.clone())
+                .with_attr_opt(
+                    "onclick",
+                    link.map(|link| format!("return navigate('{link}')")),
+                )
                 .with_child(Html::span(&["keyword", "space-after"], "class"))
                 .with_child(Html::span(
                     &["name"],

@@ -14,6 +14,18 @@ let searchQuery = '';
 
 let memberFunctionsList = null;
 
+function sanitizeText(text) {
+    return text.replace(/[&<>'"]/g, char => {
+        switch (char) {
+            case '&': return '&amp';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot';
+            case "'": return '&#039';
+        };
+    });
+}
+
 function createCopyButton(icon, text, callback = undefined) {
     const button = document.createElement('button');
     button.innerHTML = `${icon}`;
@@ -131,6 +143,18 @@ function highlight() {
     twemoji.parse(document.body);
 }
 
+function lazierUrls() {
+    mainBody.querySelectorAll('a').forEach(a => {
+        const rawHref = a.getAttribute('href');
+        if (a.hasAttribute('onclick') || !rawHref) return;
+        if (rawHref.startsWith('/')) {
+            a.setAttribute('onclick', `return navigate('${rawHref}')`);
+        } else if (rawHref.startsWith('#')) {
+            a.setAttribute('onclick', `return navigate('${a.href}')`);
+        }
+    });
+}
+
 function clearSearch() {
     searchInput.value = '';
     search('');
@@ -159,6 +183,7 @@ function searchActually(query) {
             memberFunctionsList = res;
             searchActually(searchQuery);
         });
+        return;
     }
     updateNav();
 }
@@ -244,6 +269,15 @@ function furryMatch(str, query) {
         } : undefined;
 }
 
+function sanitizeGenerics(text) {
+    const parts = text.split(/(<span.*?>|<\/span>)/);
+    for (let i = 0; i < parts.length; i += 2) {
+        const part = parts[i];
+        parts[i] = (part !== '&nbsp;') ? sanitizeText(part) : part;
+    }
+    return parts.join('');
+}
+
 function furryMatchMany(list, query, separator) {
     let matched = '';
     let score = 0;
@@ -252,13 +286,13 @@ function furryMatchMany(list, query, separator) {
     // hack: "::" -> ":"
     const queryParts = query.split(separator[0]).filter(x => x !== "");
     let queryIndex = 0;
-    for (const item of list) {
+    for (const [i, item] of list.entries()) {
         if (matched.length) {
             matched += `<span class="scope">${separator}</span>`;
         }
         const match = furryMatch(item, queryParts[Math.min(queryIndex, queryParts.length - 1)]);
         if (match) {
-            matched += match.matched;
+            matched += match.matched.replace(/>\s+</g, '>&nbsp;<');
             score += match.score;
             someMatched = true;
             // namespace match is a penaulty
@@ -273,13 +307,14 @@ function furryMatchMany(list, query, separator) {
         else {
             matched += item;
         }
-        i++;
     }
     // theres still stuff that wasnt matched
     if (queryIndex < queryParts.length) {
         someMatched = false;
     }
-    return someMatched ? { score, matched } : undefined;
+    if (!someMatched) return undefined;
+    matched = sanitizeGenerics(matched);
+    return { score, matched };
 }
 
 function currentNav() {
@@ -319,12 +354,17 @@ function updateNav() {
             if (match) {
                 const clone = a.cloneNode(false);
                 const svg = a.querySelector('svg');
+                clone.style.whiteSpace = 'pre';
                 clone.innerHTML = match.matched;
                 // copy any icons over
                 if (svg) {
                     clone.insertBefore(svg.cloneNode(true), clone.firstChild);
                 }
                 results.push([match.score, clone]);
+                clone.addEventListener('click', e => {
+                    navigate(clone.href);
+                    e.preventDefault();
+                })
             }
         });
         if (selectedNavTab() == 'entities') {
@@ -335,12 +375,13 @@ function updateNav() {
                 if (match) {
                     funParts.pop();
                     const node = document.createElement('a');
-                    const url = `${FLASH_OUTPUT_URL}/classes/${funParts.join('/')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
+                    const url = `${FLASH_OUTPUT_URL}/classes/${funParts.join('/').replace(/<.*>/g, '')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
                     node.setAttribute('href', url);
                     node.addEventListener('click', e => {
                         navigate(url);
                         e.preventDefault();
                     });
+                    node.style.whiteSpace = 'pre';
                     node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + match.matched;
                     results.push([match.score, node]);
                 }
@@ -385,7 +426,7 @@ function updateNav() {
 }
 
 function scrollAndOpenElement(id) {
-    if (id) {
+    if (id != null && id.length > 0) {
         if (id.startsWith('#')) {
             id = id.substring(1);
         }
@@ -399,6 +440,8 @@ function scrollAndOpenElement(id) {
                 target.open = true;
             }
         }
+    } else {
+        mainBody.scrollTo(0, 0);
     }
 }
 
@@ -483,6 +526,16 @@ async function buildNav() {
 	appendChildren(document.querySelector('#nav-content-tutorials'), buildNavFor(data.tutorials));
 }
 
+async function updateCurrentHistoryState() {
+    const path = window.location.origin + window.location.pathname;
+
+    const metadata = await fetch(`${path}/metadata.json`).then(res => res.json());
+    window.history.replaceState({
+        html: mainBody.innerHTML,
+        ...metadata
+    }, '', window.location.href.replace('/#', '#').replace(/\/$/, ''));
+}
+
 function navigate(url) {
     const trueURL = url.split('#').shift();
     const head = url.split('#').pop();
@@ -499,6 +552,7 @@ function navigate(url) {
             mainBody.scrollTo({ left: 0, top: 0 });
             nav.querySelectorAll('a.selected').forEach(a => a.classList.remove('selected'));
             nav.querySelector(`[href="${url}"]`)?.classList.add('selected');
+            lazierUrls();
             highlight();
             // hide navbar
             nav.classList.add('collapsed');
@@ -516,7 +570,9 @@ window.onpopstate = e => {
     if (e.state) {
         mainBody.innerHTML = e.state.html;
         document.title = e.state.title;
+        lazierUrls();
         highlight();
+        scrollAndOpenElement(window.location.hash);
     }
 };
 
@@ -547,6 +603,15 @@ function toggleMenu() {
 }
 
 await buildNav();
+await updateCurrentHistoryState();
+
+// Make urls lazier
+try {
+    lazierUrls();
+} catch (e) {
+    console.error("Lazier urls failed... oops");
+    console.error(e);
+}
 
 // Highlight everything
 try {
@@ -597,3 +662,4 @@ document.querySelector(`[data-pick-theme="${
 window.showNav = showNav;
 window.clearSearch = clearSearch;
 window.toggleMenu = toggleMenu;
+window.navigate = navigate;
